@@ -5,17 +5,20 @@ module Seem
         attr_reader :text, :path
         
         def self.read path
-            puts "path, #{path}"
-            File.read(path,'r') do |file|
-                #TODO : ERROR point
-                puts "#{path} file - #{file}"
-                self.new("hello seem",path)
+            init_result = nil
+            File.open(path,'r') do |file|
+                init_result = self.new(file.read,path)
             end
+            init_result
         end
  
         def initialize text="", path=nil
             @text = text
             @path = path
+        end
+        
+        def clone
+            self.class.new(@text, @path)
         end
         
         def pathExsist?
@@ -24,13 +27,25 @@ module Seem
     end
     
     class Files
-        attr_reader :texts
+        attr_accessor :texts
         
         def initialize pathes=[]
             pathes = Seem::to_a(pathes)
             @texts = pathes.map do |path|
                 Seem::Text.read(path)
             end
+        end
+        
+        def match_select exp *exps
+            
+        end
+        
+        def clone
+            files_clone = self.class.new
+            files_clone.texts = @texts.map do |seem_text|
+                seem_text.clone
+            end
+            files_clone
         end
     end
     
@@ -48,8 +63,6 @@ module Seem
             expand_glob = Dir.glob(expand_path)
             glob_pathes = glob_pathes + expand_glob if expand_glob.any?
         end
-        
-        puts "glob_pathes #{glob_pathes}"
         
         self::Files.new(glob_pathes)
     end

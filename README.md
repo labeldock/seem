@@ -3,9 +3,9 @@
 
 # Concept
 ```ruby
-seemed = Seem.read("target.css","utf-8").scan(/(url\([^\)]*\))/, ['background-color:',';'], ['(\s+){','}']) do |seem|
+seemed = Seem.glob("*.css").match_select('',Seem::Style :color, Seem::StyleBlock) do |seem|
     originalString = seem.matches[1]
-    seem.matches[1] = 'none'
+    seem.matches[1] = 'none;'
     puts "#{original} removed"
 end
 
