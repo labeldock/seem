@@ -1,2 +1,2 @@
 #!/usr/bin/ruby
-require "../seem.rb"
+require File.expand_path('../seem.rb', __dir__)
