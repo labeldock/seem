@@ -62,21 +62,13 @@ module Seem
             opts = opts.class == Hash ? opts : {}
             
             @reference,
-            @match[:head],
-            @match[:body],
-            @match[:foot],
-            @match[:begin],
-            @match[:end],
-            @match[:body_begin],
-            @match[:body_end] = 
-            opts[:reference] || nil,
-            opts[:head] || '',
-            opts[:body] || '',
-            opts[:foot] || '',
-            opts[:begin] || nil,
-            opts[:end] || nil,
-            opts[:body_begin] || nil,
-            opts[:body_end] || nil
+            @match[:head],       @match[:body],    @match[:foot],
+            @match[:depth],      @match[:begin],   @match[:end],
+            @match[:body_begin], @match[:body_end] = 
+            opts[:reference]  || nil, 
+            opts[:head]       || '',  opts[:body]     || '' , opts[:foot] || '',
+            opts[:depth]      || nil, opts[:begin]    || nil, opts[:end] || nil,
+            opts[:body_begin] || nil, opts[:body_end] || nil
         end
         def head
             @match[:head]
@@ -118,7 +110,7 @@ module Seem
         []
     end
     
-    def self.block_matches text, exp, from=0
+    def self.block_matches text, exp, from=0, depth=0, inner_matches=true
         if (exp.class != Array) || (exp.length < 2)
             raise "Worong block expression #{exp}"
             return nil
@@ -139,12 +131,6 @@ module Seem
         mhead_begin_index = match_head.begin 0
         mhead_end_index   = match_head.end 0
         
-        
-        # scope find variant
-        track_index  = mhead_end_index;
-        track_count   = 0
-        
-        
         # find foot index
         match_foot = text.match closer_exp, mhead_end_index  
         
@@ -157,33 +143,71 @@ module Seem
         
         
         # find next heading index
-        match_next_opener       = text.match opener_exp, track_index
+        match_next_opener       = text.match opener_exp, mhead_end_index
         next_opener_begin_index = match_next_opener && match_next_opener.begin(0)
+        next_opener_end_index   = match_next_opener && match_next_opener.end(0)
         
+        # init tracking variant
+        opener_track_index  = mhead_end_index
+        closer_track_index  = mfoot_end_index
+        track_depth  = 0
         
-        # next opener not exsist
-        # next opener is far away
-        puts "next_opener_begin_index, mfoot_begin_index #{[next_opener_begin_index, mfoot_begin_index]}"
-        if ((!next_opener_begin_index && mfoot_begin_index) ||
-           (next_opener_begin_index > mfoot_begin_index))
-            block_matches << Seem::BlockMatch.new({
-                reference:text,
-                head: text[mhead_begin_index ... mhead_end_index],
-                body: text[mhead_end_index   ... mfoot_begin_index],
-                foot: text[mfoot_begin_index ... mfoot_end_index],
-                begin: mhead_begin_index,
-                end: mfoot_end_index,
-                body_begin:mhead_end_index,
-                body_end:mfoot_begin_index,
-            })
-            
-            next_matches = self.block_matches(text, exp, mfoot_end_index);
-            block_matches << next_matches unless next_matches.empty?
-            return block_matches
+        puts "begin , #{from}"
+        begin
+            if !next_opener_begin_index && mfoot_begin_index
+                # next opener not exsist
+                puts "raise:PERMIT 1"
+                raise Seem::Raise.new :PERMIT
+            elsif (next_opener_begin_index > mfoot_begin_index) && (track_depth == 0)
+                # next opener is far away
+                puts "raise:PERMIT 2"
+                raise Seem::Raise.new :PERMIT
+            elsif next_opener_begin_index < mfoot_begin_index
+                # next opener exsist
+                puts ":NEXT_OPENERraise_EXSIST"
+                raise Seem::Raise.new :NEXT_OPENER_EXSIST
+            else
+                # exit
+                puts "raise:EXIT"
+                raise Seem::Reason.new :EXIT
+            end
+        rescue Seem::Raise => seem_raise
+            case seem_raise.reason
+            when :PERMIT
+                # process finally
+                block_matches << Seem::BlockMatch.new({
+                    reference:text,
+                    head: text[mhead_begin_index ... mhead_end_index],
+                    body: text[mhead_end_index   ... mfoot_begin_index],
+                    foot: text[mfoot_begin_index ... mfoot_end_index],
+                    depth: depth,
+                    begin: mhead_begin_index,
+                    end: mfoot_end_index,
+                    body_begin:mhead_end_index,
+                    body_end:mfoot_begin_index,
+                })
+                
+                next_matches = self.block_matches(text, exp, mfoot_end_index);
+                block_matches << next_matches unless next_matches.empty?
+            when :EXIT
+                puts "exit"
+            when :NEXT_OPENER_EXSIST
+                puts ":NEXT_OPENER_EXSIST"
+            else
+                print seem_raise
+            end
+        rescue
+            puts "Something went wrong => #{reason}"
         end
         
-        # TODO
-        # next opener exsist
+        return block_matches
+    end
+    
+    class Raise < StandardError
+        attr_accessor :reason
+        def initialize reason
+            @reason = reason
+        end
     end
     
     private
@@ -193,10 +217,12 @@ module Seem
     end
 end
 
+
+
 # Temporary TEST CODE
 
 require "pp"
-text_1args   = "#master-header{ color:red; } #master-header{ color:red; }",["{","}"]
+text_1args   = "#master-header{ color:red; } #master-header{ color:blue; }",["{","}"]
 
 puts "block matches 1 # #{text_1args}"
-puts "result ---#{ pp Seem.block_matches *text_1args }---"
+pp Seem.block_matches *text_1args
