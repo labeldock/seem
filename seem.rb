@@ -147,34 +147,34 @@ module Seem
         next_opener_begin_index = match_next_opener && match_next_opener.begin(0)
         next_opener_end_index   = match_next_opener && match_next_opener.end(0)
         
+        
         # init tracking variant
         opener_track_index  = mhead_end_index
         closer_track_index  = mfoot_end_index
         track_depth  = 0
         
-        puts "begin , #{from}"
+        puts "begin from : #{from}"
+        
         begin
             if !next_opener_begin_index && mfoot_begin_index
                 # next opener not exsist
-                puts "raise:PERMIT 1"
-                raise Seem::Raise.new :PERMIT
+                raise Seem::Raise.new :PERMIT_NEXT_NOT_EXSIST
             elsif (next_opener_begin_index > mfoot_begin_index) && (track_depth == 0)
                 # next opener is far away
-                puts "raise:PERMIT 2"
-                raise Seem::Raise.new :PERMIT
+                raise Seem::Raise.new :PERMIT_NEXT_IS_FOR_AWAY
             elsif next_opener_begin_index < mfoot_begin_index
                 # next opener exsist
-                puts ":NEXT_OPENERraise_EXSIST"
-                raise Seem::Raise.new :NEXT_OPENER_EXSIST
+                puts "raise:NEXT_OPENER_EXSIST"
+                raise Seem::Raise.new :NEXTHEAD_PRECEDES_FOOT
             else
                 # exit
                 puts "raise:EXIT"
                 raise Seem::Reason.new :EXIT
             end
         rescue Seem::Raise => seem_raise
+            puts "RESCUE CASE -- #{seem_raise.reason}"
             case seem_raise.reason
-            when :PERMIT
-                # process finally
+            when :PERMIT_NEXT_NOT_EXSIST, :PERMIT_NEXT_IS_FOR_AWAY
                 block_matches << Seem::BlockMatch.new({
                     reference:text,
                     head: text[mhead_begin_index ... mhead_end_index],
@@ -189,10 +189,10 @@ module Seem
                 
                 next_matches = self.block_matches(text, exp, mfoot_end_index);
                 block_matches << next_matches unless next_matches.empty?
+            when :NEXTHEAD_PRECEDES_FOOT
+                puts ":NEXT_OPENER_EXSIST"
             when :EXIT
                 puts "exit"
-            when :NEXT_OPENER_EXSIST
-                puts ":NEXT_OPENER_EXSIST"
             else
                 print seem_raise
             end
