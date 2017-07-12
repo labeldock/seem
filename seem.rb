@@ -1,5 +1,3 @@
-require "pp"
-
 #!/usr/bin/ruby
 module Seem
     
@@ -195,6 +193,9 @@ module Seem
     end
 end
 
+# Temporary TEST CODE
+
+require "pp"
 text_1args   = "#master-header{ color:red; } #master-header{ color:red; }",["{","}"]
 
 puts "block matches 1 # #{text_1args}"
