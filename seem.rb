@@ -110,104 +110,106 @@ module Seem
         []
     end
     
-    def self.block_matches text, exp, from=0, depth=0, inner_matches=true
+    def self.block_matches text, exp, opt=nil
+        
+        meta = opt.class == Hash ? opt : {}
+        meta[:from]      = 0 unless meta[:from].class   == Integer
+        meta[:depth]     = 0 unless meta[:depth].class  == Integer
+        meta[:offset]    = 0 unless meta[:offset].class == Integer
+        meta[:nested]    = false unless meta[:nested] == true or meta[:nested] == false
+        meta[:reference] ||= text
+        
         if (exp.class != Array) || (exp.length < 2)
             raise "Worong block expression #{exp}"
             return nil
         end
         
+        # result
         block_matches = []
         
-        opener_exp = exp[0].class == String ? Regexp.escape(exp[0]) : exp[0]
-        closer_exp = exp[1].class == String ? Regexp.escape(exp[1]) : exp[1]
+        #expression
+        opener, closer = 
+        exp[0].class == String ? Regexp.escape(exp[0]) : exp[0],
+        exp[1].class == String ? Regexp.escape(exp[1]) : exp[1];
         
-        # scope start index
-        match_head = text.match opener_exp, from
+        #helper
+        text_match_from = lambda do |match_expression, from_start_index|
+            # find match
+            match = text.match match_expression, from_start_index
+            match and { match: match, begin: match.begin(0), end: match.end(0) }
+        end
         
-        # when not found block head
-        return block_matches unless match_head
+        # master_header
+        master_header = text_match_from.call opener, meta[:from]
+        return block_matches unless master_header
         
-        # when block head exsist
-        mhead_begin_index = match_head.begin 0
-        mhead_end_index   = match_head.end 0
+        # master_footer
+        master_footer = text_match_from.call closer, master_header[:end]
+        return block_matches unless master_footer
         
-        # find foot index
-        match_foot = text.match closer_exp, mhead_end_index  
+        # track : next header, current footer
+        track_header = text_match_from.call opener, master_header[:end]
+        track_footer = master_footer
         
-        # when not found block end
-        return block_matches unless match_foot
-        
-        # when block end exsist
-        mfoot_begin_index = match_foot.begin 0
-        mfoot_end_index   = match_foot.end   0
-        
-        
-        # find next heading index
-        match_next_opener       = text.match opener_exp, mhead_end_index
-        next_opener_begin_index = match_next_opener && match_next_opener.begin(0)
-        next_opener_end_index   = match_next_opener && match_next_opener.end(0)
-        
-        
-        # init tracking variant
-        opener_track_index  = mhead_end_index
-        closer_track_index  = mfoot_end_index
-        track_depth  = 0
-        
-        puts "begin from : #{from}"
-        
-        begin
-            if !next_opener_begin_index && mfoot_begin_index
-                # next opener not exsist
-                raise Seem::Raise.new :PERMIT_NEXT_NOT_EXSIST
-            elsif (next_opener_begin_index > mfoot_begin_index) && (track_depth == 0)
-                # next opener is far away
-                raise Seem::Raise.new :PERMIT_NEXT_IS_FOR_AWAY
-            elsif next_opener_begin_index < mfoot_begin_index
-                # next opener exsist
-                puts "raise:NEXT_OPENER_EXSIST"
-                raise Seem::Raise.new :NEXTHEAD_PRECEDES_FOOT
-            else
-                # exit
-                puts "raise:EXIT"
-                raise Seem::Reason.new :EXIT
-            end
-        rescue Seem::Raise => seem_raise
-            puts "RESCUE CASE -- #{seem_raise.reason}"
-            case seem_raise.reason
-            when :PERMIT_NEXT_NOT_EXSIST, :PERMIT_NEXT_IS_FOR_AWAY
-                block_matches << Seem::BlockMatch.new({
-                    reference:text,
-                    head: text[mhead_begin_index ... mhead_end_index],
-                    body: text[mhead_end_index   ... mfoot_begin_index],
-                    foot: text[mfoot_begin_index ... mfoot_end_index],
-                    depth: depth,
-                    begin: mhead_begin_index,
-                    end: mfoot_end_index,
-                    body_begin:mhead_end_index,
-                    body_end:mfoot_begin_index,
-                })
+        # track currect
+        track_currected = true
+        if track_header and (track_header[:end] < master_footer[:end])
+            #block incoorrect ... need recalibrated
+            track_currected  = false
+            track_calibrated = false
+            
+            begin
+                track_footer = text_match_from.call closer, track_footer[:end]
+                track_header = text_match_from.call opener, track_header[:end]
                 
-                next_matches = self.block_matches(text, exp, mfoot_end_index);
-                block_matches << next_matches unless next_matches.empty?
-            when :NEXTHEAD_PRECEDES_FOOT
-                puts ":NEXT_OPENER_EXSIST"
-            when :EXIT
-                puts "exit"
-            else
-                print seem_raise
+                if track_footer == nil
+                    track_currected, track_calibrated = false, true
+                elsif track_header == nil or (track_header[:end] > track_footer[:end])
+                    master_footer, track_currected, track_calibrated = track_footer, true, true
+                end
+                
+            end while track_calibrated != true
+        end 
+        
+        if track_currected
+            
+            body_content = text[master_header[:end] ... master_footer[:begin]];
+            
+            block_matches << Seem::BlockMatch.new({
+                reference:  meta[:reference],
+                head:       text[master_header[:begin] ... master_header[:end]],
+                body:       body_content,
+                foot:       text[master_footer[:begin] ... master_footer[:end]],
+                depth:      meta[:depth],
+                begin:      meta[:offset] + master_header[:begin],
+                end:        meta[:offset] + master_footer[:end],
+                body_begin: meta[:offset] + master_header[:end],
+                body_end:   meta[:offset] + master_footer[:begin],
+            })
+            
+            # find child
+            if meta[:nested]
+                sub_opts = meta.clone
+                sub_opts[:depth]     = meta[:depth] + 1
+                sub_opts[:offset]    = meta[:offset] + master_header[:end]
+                sub_opts[:reference] = meta[:reference] || text
+                
+                sub_matches = self.block_matches(body_content,exp,sub_opts)
+                
+                #offset
+                if(meta[:depth] == 0)
+                    sub_matches
+                end
+                
+                block_matches.concat sub_matches unless sub_matches.empty?
             end
-        rescue
-            puts "Something went wrong => #{reason}"
+            
+            # find next
+            next_matches = self.block_matches(text, exp, {from: master_footer[:end]});
+            block_matches.concat next_matches unless next_matches.empty?
         end
         
         return block_matches
-    end
-    
-    class Raise < StandardError
-        attr_accessor :reason
-        def initialize reason
-            @reason = reason
-        end
     end
     
     private
@@ -222,7 +224,9 @@ end
 # Temporary TEST CODE
 
 require "pp"
-text_1args   = "#master-header{ color:red; } #master-header{ color:blue; }",["{","}"]
+text_1args   = ["#master-header{ color:red; .common{} } #master-header{ color:blue; }",["{","}"],{
+    nested: true
+}]
 
 puts "block matches 1 # #{text_1args}"
 pp Seem.block_matches *text_1args
