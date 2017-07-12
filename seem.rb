@@ -54,19 +54,38 @@ module Seem
     end
     
     class BlockMatch
-        attr_accessor :section, :position
-        def initialize section={head: '', body: '', foot: ''}, position={line: nil, start: nil, end: nil}
-            @section  = section
-            @position = position
+        attr_reader :reference, :match
+        
+        def initialize opts={}
+            @match  = {}
+            
+            opts = opts.class == Hash ? opts : {}
+            
+            @reference,
+            @match[:head],
+            @match[:body],
+            @match[:foot],
+            @match[:begin],
+            @match[:end],
+            @match[:body_begin],
+            @match[:body_end] = 
+            opts[:reference] || nil,
+            opts[:head] || '',
+            opts[:body] || '',
+            opts[:foot] || '',
+            opts[:begin] || nil,
+            opts[:end] || nil,
+            opts[:body_begin] || nil,
+            opts[:body_end] || nil
         end
         def head
-            @section[:head]
+            @match[:head]
         end
         def body
-            @section[:body]
+            @match[:body]
         end
         def foot
-            @section[:foot]
+            @match[:foot]
         end
         def content
             self.head + self.body + self.foot
@@ -147,16 +166,20 @@ module Seem
         if ((!next_opener_begin_index && mfoot_begin_index) ||
            (next_opener_begin_index < mfoot_begin_index))
             block_matches << Seem::BlockMatch.new({
+                reference:text,
                 head: text[mhead_begin_index ... mhead_end_index],
                 body: text[mhead_end_index   ... mfoot_begin_index],
-                foot: text[mfoot_begin_index ... mfoot_end_index]
+                foot: text[mfoot_begin_index ... mfoot_end_index],
+                begin: mhead_begin_index,
+                end: mfoot_end_index,
+                body_begin:mhead_end_index,
+                body_end:mfoot_begin_index,
             })
             return block_matches
         end
         
+        # TODO
         # next opener exsist
-        
-        
     end
     
     private
