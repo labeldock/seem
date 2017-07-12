@@ -1,3 +1,5 @@
+require "pp"
+
 #!/usr/bin/ruby
 module Seem
     
@@ -163,8 +165,9 @@ module Seem
         
         # next opener not exsist
         # next opener is far away
+        puts "next_opener_begin_index, mfoot_begin_index #{[next_opener_begin_index, mfoot_begin_index]}"
         if ((!next_opener_begin_index && mfoot_begin_index) ||
-           (next_opener_begin_index < mfoot_begin_index))
+           (next_opener_begin_index > mfoot_begin_index))
             block_matches << Seem::BlockMatch.new({
                 reference:text,
                 head: text[mhead_begin_index ... mhead_end_index],
@@ -175,6 +178,9 @@ module Seem
                 body_begin:mhead_end_index,
                 body_end:mfoot_begin_index,
             })
+            
+            next_matches = self.block_matches(text, exp, mfoot_end_index);
+            block_matches << next_matches unless next_matches.empty?
             return block_matches
         end
         
@@ -189,7 +195,7 @@ module Seem
     end
 end
 
-puts "block matches 1 # #{["#master-header{ color:red; }",["{","}"]]}"
-test_1 = Seem.block_matches("#master-header{ color:red; }",["{","}"])
-puts "result ---#{ test_1 }---"
+text_1args   = "#master-header{ color:red; } #master-header{ color:red; }",["{","}"]
 
+puts "block matches 1 # #{text_1args}"
+puts "result ---#{ pp Seem.block_matches *text_1args }---"
