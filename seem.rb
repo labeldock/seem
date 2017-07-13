@@ -143,13 +143,50 @@ module Seem
     end
     
     
-    class Matches
-        attr_reader :reference, :matches
+    class BlockMatches < Array
+        attr_reader :reference, :history
         
         def initialize text
             @reference = text
+            @history = []
         end
-        def
+        
+        def setup! block_exp
+            self.clear
+            @history = [block_exp] unless @history.empty?
+            self.concat Seem::block_matches(@reference, block_exp)
+            return self
+        end
+        
+        def setup block_exp
+            self.setup!(block_exp) if Seem::block_expression? block_exp
+            return self
+        end
+        
+        def block block_exp
+            if Seem::block_expression? block_exp
+                if @history.length == 0
+                    self.setup! block_exp
+                else
+                    modify_maches = []
+                    self.each do |block_match|
+                        modify_maches.concat block_match.modify
+                    end
+                    self.clear
+                    self.concat modify_maches
+                end
+            else
+                raise StandardError.new "Seem::BlockMatches.block argument is worng #{block_exp}"
+            end
+            return self
+        end
+        
+        def blocks *block_exps
+            block_exps.each do |block_exp|
+                self.block block_exp
+            end
+        end
+        
     end
     
     
@@ -229,23 +266,18 @@ module Seem
         []
     end
     
-    
-    
     private
+    
+    def self.block_expression? block_exp
+        block_exp.class == Array and 
+        block_exp.length > 1     and
+        block_exp.all? { |exp|
+            exp.instance_of? Regexp or
+            exp.instance_of? String
+        }
+    end
     
     def self.to_a data
         data.class == Array ? data : [data]
     end
 end
-
-
-
-# Temporary TEST CODE
-
-require "pp"
-text_1args   = ["#master-header{ color:red; .common{} } #master-header{ color:blue; }",["{","}"],{
-    nested: true
-}]
-
-puts "block matches 1 # #{text_1args}"
-pp Seem.block_matches *text_1args
