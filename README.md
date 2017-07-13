@@ -1,5 +1,6 @@
 # Purpose
-블럭 베이스 파일 텍스트 검색 및 수정
+Search and modify block base file text.
+The source code is still under development.
 
 # Concept
 ```ruby
