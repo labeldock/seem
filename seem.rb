@@ -258,12 +258,12 @@ module Seem
         end
     end
     
-    def self._style_block
+    def self.STYLE_BLOCK
         [/[\w+\s^\n\}]\{/,'}']
     end
     
-    def self._style attr=nil
-        []
+    def self.STYLE_NAME name
+        [Regexp.new("#{name}\:"),";"]
     end
     
     private

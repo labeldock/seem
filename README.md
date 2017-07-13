@@ -3,11 +3,11 @@
 
 # Concept
 ```ruby
-seemed = Seem.glob("*.css").match_select('',Seem::Style :color, Seem::StyleBlock) do |seem|
-    originalString = seem.matches[1]
-    seem.matches[1] = 'none;'
-    puts "#{original} removed"
+seems = Seem.glob("*.css").match_select(Seem::STYLE_NAME :color, Seem::STYLE_BLOCK) do |seem|
+    seem.body = "red"
 end
 
-seemed.write("target.filtered.scss");
+seems.each do |seem|
+    seem.write
+end
 ```

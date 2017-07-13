@@ -9,4 +9,4 @@ require "pp"
 #text_2inst = Seem::BlockMatches.new "#master-header{ color:red; .common{} } #master-header{ color:blue; }"
 #text_2inst.blocks ["{","}"], [":",";"]
 #pp text_2inst
-#p Seem.glob
+p Seem.glob("*.css")
