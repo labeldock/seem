@@ -44,7 +44,7 @@ module Seem
         meta[:depth]     = 0 unless meta[:depth].class  == Integer
         meta[:offset]    = 0 unless meta[:offset].class == Integer
         meta[:nested]    = false unless meta[:nested] == true or meta[:nested] == false
-        meta[:reference] ||= text
+        meta[:reference] = meta[:reference].class == Seem::Area ? meta[:reference] : nil
         
         if (exp.class != Array) || (exp.length < 2)
             raise "Worong block expression #{exp}"
@@ -217,6 +217,13 @@ module Seem
         def initialize text="", path=nil
             @text = text
             @path = path
+            @que  = []
+        end
+        
+        def block block_exp
+            matches = Seem::block_matches @text, block_exp, {reference: self}
+            matches.each{ |block_match| yield block_match } if block_given?
+            matches
         end
         
         def clone
