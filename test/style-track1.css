@@ -1,3 +1,7 @@
 /* hello style track 1 */
 
-a { color:red; }
+a { 
+    color:red; 
+    color:#f00;
+    color:rgb(255,0,0);
+}

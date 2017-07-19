@@ -12,8 +12,10 @@ require "pp"
 
 
 seems = Seem.glob("*.css",__dir__).each do |seem|
-    seem.block ['{','}'] do |match|
-        
-        p "match.content  :: #{ match.content }"
+    seem.block :css do |match|
+        p "[1] match.content  :: #{ match.content }"
+        match.block :css_name, :color do |match|
+            p "[2] match.content  :: #{ match.body }"
+        end
     end
 end

@@ -1,39 +1,21 @@
 #!/usr/bin/ruby
 module Seem
     
-    class BlockMatch
-        attr_reader :reference, :matches
-        
-        def initialize opts={}
-            opts  = opts.class == Hash ? opts : {}
-            
-            @reference = opts[:reference]  || nil
-            @matches = [{
-                head:       opts[:head]       || '',
-                body:       opts[:body]       || '' ,
-                foot:       opts[:foot]       || '',
-                depth:      opts[:depth]      || nil,
-                begin:      opts[:begin]      || nil,
-                end:        opts[:end]        || nil,
-                body_begin: opts[:body_begin] || nil,
-                body_end:   opts[:body_end]   || nil
-            }]
-        end
-        def head
-            @match[:head]
-        end
-        def body
-            @match[:body]
-        end
-        def foot
-            @match[:foot]
-        end
-        def matched
-            @matches.last
-        end
-        def content
-            last = self.matched
-            last and (last[:head] + last[:body] + last[:foot])
+    BLOCK_PRESETS = {
+        css: Proc.new { |name=nil|
+            [/[\w+\s^\n\}]\{/,'}']
+        },
+        css_name: Proc.new { |name=nil|
+            [":",';']
+        }
+    }
+    
+    def self.block_presets *args
+        preset = BLOCK_PRESETS[args[0]]
+        if preset
+            preset.call
+        else
+            args[0]
         end
     end
     
@@ -156,6 +138,46 @@ module Seem
         Seem::Files.new(glob_pathes)
     end
     
+    class BlockMatch
+        attr_reader :reference, :matches
+        
+        def initialize opts={}
+            opts  = opts.class == Hash ? opts : {}
+            
+            @reference = opts[:reference]  || nil
+            @match     = {
+                head:       opts[:head]       || '',
+                body:       opts[:body]       || '' ,
+                foot:       opts[:foot]       || '',
+                depth:      opts[:depth]      || nil,
+                begin:      opts[:begin]      || nil,
+                end:        opts[:end]        || nil,
+                body_begin: opts[:body_begin] || nil,
+                body_end:   opts[:body_end]   || nil
+            }
+        end
+        def head
+            @match[:head]
+        end
+        def body
+            @match[:body]
+        end
+        def foot
+            @match[:foot]
+        end
+        def content
+            @match[:head] + @match[:body] + @match[:foot]
+        end
+        def block *block_exps
+            matches = Seem::block_matches @match[:body], Seem::block_presets(*block_exps), {reference: @reference, offset: @match[:begin]}
+            matches.each{ |block_match| yield block_match } if block_given?
+            matches
+        end
+        def replace
+            return unless @reference
+        end
+    end
+    
     class Area
         attr_reader :text, :path
         
@@ -173,8 +195,8 @@ module Seem
             @que  = []
         end
         
-        def block block_exp
-            matches = Seem::block_matches @text, block_exp, {reference: self}
+        def block *block_exps
+            matches = Seem::block_matches @text, Seem::block_presets(*block_exps), {reference: self}
             matches.each{ |block_match| yield block_match } if block_given?
             matches
         end
@@ -207,10 +229,6 @@ module Seem
             end
             files_clone
         end
-    end
-    
-    def style
-        [/[\w+\s^\n\}]\{/,'}']
     end
     
     private

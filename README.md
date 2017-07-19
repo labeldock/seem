@@ -6,9 +6,14 @@ The source code is still under development.
 ```ruby
 seems = Seem.glob("*.css").each do |seem|
     # find
-    seem.match Seem::STYLE_NAME :color, Seem::STYLE_BLOCK do |match|
-        #replace
-        match.replace_body = red
+    seem.block :css do |match|
+        #nested find
+        match.block :css_name, :color do |match|
+            match.replace do |inject|
+                #replace
+                inject.body = "red"
+            end
+        end
     end
     
     # write
