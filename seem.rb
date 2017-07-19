@@ -182,10 +182,6 @@ module Seem
         def clone
             self.class.new(@text, @path)
         end
-        
-        def pathExsist?
-            
-        end
     end
     
     class Files
