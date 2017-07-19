@@ -9,4 +9,11 @@ require "pp"
 #text_2inst = Seem::BlockMatches.new "#master-header{ color:red; .common{} } #master-header{ color:blue; }"
 #text_2inst.blocks ["{","}"], [":",";"]
 #pp text_2inst
-p Seem.glob("*.css")
+
+
+seems = Seem.glob("*.css",__dir__).each do |seem|
+    seem.block ['{','}'] do |match|
+        
+        p "match.content  :: #{ match.content }"
+    end
+end

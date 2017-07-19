@@ -179,7 +179,7 @@ module Seem
             return self
         end
         
-        def blocks *block_exps
+        def block *block_exps
             block_exps.each do |block_exp|
                 self.block block_exp
             end
@@ -246,26 +246,22 @@ module Seem
         end
         
         def each
-            @texts.each do |seem_text|
-                yield seem_text
+            @texts.each do |seem_area|
+                yield seem_area
             end
         end
         
         def clone
             files_clone = self.class.new
-            files_clone.texts = @texts.map do |seem_text|
-                seem_text.clone
+            files_clone.texts = @texts.map do |seem_area|
+                seem_area.clone
             end
             files_clone
         end
     end
     
-    def self.STYLE_BLOCK
+    def style
         [/[\w+\s^\n\}]\{/,'}']
-    end
-    
-    def self.STYLE_NAME name
-        [Regexp.new("#{name}\:"),";"]
     end
     
     private
