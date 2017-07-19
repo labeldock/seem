@@ -140,53 +140,6 @@ module Seem
         return block_matches
     end
     
-    
-    class BlockMatches < Array
-        attr_reader :reference, :history
-        
-        def initialize text
-            @reference = text
-            @history = []
-        end
-        
-        def setup! block_exp
-            self.clear
-            @history = [block_exp] unless @history.empty?
-            self.concat Seem::block_matches(@reference, block_exp)
-            return self
-        end
-        
-        def setup block_exp
-            self.setup!(block_exp) if Seem::block_expression? block_exp
-            return self
-        end
-        
-        def block block_exp
-            if Seem::block_expression? block_exp
-                if @history.length == 0
-                    self.setup! block_exp
-                else
-                    modify_maches = []
-                    self.each do |block_match|
-                        modify_maches.concat block_match.modify
-                    end
-                    self.clear
-                    self.concat modify_maches
-                end
-            else
-                raise StandardError.new "Seem::BlockMatches.block argument is worng #{block_exp}"
-            end
-            return self
-        end
-        
-        def block *block_exps
-            block_exps.each do |block_exp|
-                self.block block_exp
-            end
-        end
-    end
-    
-    
     def self.read  path, charset=nil
         Seem::Area.read(path, charset=nil)
     end
