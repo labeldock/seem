@@ -184,12 +184,11 @@ module Seem
                 self.block block_exp
             end
         end
-        
     end
     
     
     def self.read  path, charset=nil
-        self::Text.read(path, charset=nil)
+        Seem::Area.read(path, charset=nil)
     end
     
     def self.glob (pathes, base_path=Dir.pwd)
@@ -201,10 +200,10 @@ module Seem
             glob_pathes = glob_pathes + expand_glob if expand_glob.any?
         end
         
-        self::Files.new(glob_pathes)
+        Seem::Files.new(glob_pathes)
     end
     
-    class Text
+    class Area
         attr_reader :text, :path
         
         def self.read path
@@ -235,15 +234,13 @@ module Seem
         def initialize pathes=[]
             pathes = Seem::to_a(pathes)
             @texts = pathes.map do |path|
-                Seem::Text.read(path)
+                Seem::Area.read(path)
             end
         end
         
-        def each_replace exp, *iexps
-            exps = (iexps == nil ? [] : (iexps.class == Array ? iexps : [iexps])).reverse
-            
+        def each
             @texts.each do |seem_text|
-                seem_text.text.match()
+                yield seem_text
             end
         end
         
