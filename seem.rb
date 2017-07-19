@@ -1,8 +1,6 @@
 #!/usr/bin/ruby
 module Seem
     
-    @@base_path = Dir.pwd
-    
     class BlockMatch
         attr_reader :reference, :matches
         
@@ -194,7 +192,7 @@ module Seem
         self::Text.read(path, charset=nil)
     end
     
-    def self.glob (pathes, base_path=@@base_path)
+    def self.glob (pathes, base_path=Dir.pwd)
         glob_pathes = []
         
         Seem::to_a(pathes).each do |path|
