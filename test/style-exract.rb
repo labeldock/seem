@@ -2,6 +2,8 @@
 require File.expand_path('../seem.rb', __dir__)
 
 # Temporary TEST CODE
+p "#{RUBY_VERSION}-p#{RUBY_PATCHLEVEL}"
+
 require "pp"
 #text_1args = ["#master-header{ color:red; .common{} } #master-header{ color:blue; }",["{","}"],{nested: false}]
 #puts "block matches 1 # #{text_1args}"
